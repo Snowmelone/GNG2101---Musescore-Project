@@ -32,6 +32,11 @@
 
 #include "log.h"
 
+// NEW: accessibility plumbing
+#include "accessibility/api/iaccessibilitycontroller.h"
+#include "accessibility/internal/accessible_score_element.h"
+#include "modularity/ioc.h"
+
 using namespace muse;
 using namespace mu::notation;
 
@@ -143,6 +148,61 @@ mu::engraving::Score* NotationSelection::score() const
 void NotationSelection::onElementHit(EngravingItem* el)
 {
     m_lastElementHit = el;
+
+    //
+    // Accessibility bridge:
+    // Tell the AccessibilityController that the score focus moved to `el`
+    // so that screen readers (and our repeatCurrentElementInfo hotkey)
+    // will read musical info (pitch, duration, bar, staff, etc.)
+    //
+
+    // 1. Get the global accessibility controller from IoC
+    auto accCtrl = muse::modularity::globalIoc()
+        ->resolve<muse::accessibility::IAccessibilityController>("accessibility");
+
+    if (!accCtrl) {
+        return;
+    }
+
+    // 2. Figure out which QWindow this selection belongs to.
+    // We don't have direct access to the notation view's QWindow here,
+    // so we pass nullptr for now. Speech will still work without a window.
+    QWindow* win = nullptr;
+
+    // 3. Keep a single persistent AccessibleScoreElement and just retarget it
+    static muse::accessibility::AccessibleScoreElement* s_accScoreElem = nullptr;
+
+    if (!s_accScoreElem) {
+        // First time: create and register with the accessibility controller.
+        //
+        // We pass:
+        //   - m_getScore->iocContext() as the ContextPtr (so AccessibleScoreElement
+        //     can participate in the same dependency graph as notation code),
+        //   - the EngravingItem* we just focused,
+        //   - the QWindow* (currently nullptr).
+        //
+        // NOTE: if m_getScore doesn't expose iocContext(), you may need to adjust
+        // this argument to whatever object in this layer has a ContextPtr.
+        s_accScoreElem = new muse::accessibility::AccessibleScoreElement(
+            /* ctx   */ m_getScore->iocContext(),
+            /* elem  */ el,
+            /* win   */ win
+        );
+
+        accCtrl->reg(s_accScoreElem);
+    } else {
+        // Subsequent focus changes: update in place
+        s_accScoreElem->updateFromSelection(el, win);
+    }
+
+    // 4. Mark it as focused/selected so AccessibilityController will treat it
+    //    as lastFocused() and emit proper focus events for assistive tech
+    s_accScoreElem->setState(muse::accessibility::IAccessible::State::Focused, true);
+    s_accScoreElem->setState(muse::accessibility::IAccessible::State::Selected, true);
+
+    // 5. Clear any pending announcement override, so repeatCurrentElementInfo()
+    //    and focus events speak the live element info instead of stale text
+    accCtrl->announce(QString());
 }
 
 mu::engraving::MeasureBase* NotationSelection::startMeasureBase() const

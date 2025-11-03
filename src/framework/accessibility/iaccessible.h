@@ -34,10 +34,10 @@
 class QWindow;
 
 namespace muse::accessibility {
+
 class IAccessible
 {
 public:
-
     virtual ~IAccessible() = default;
 
     //! NOTE Please sync with ui::MUAccessible::Role (src/framework/ui/view/qmlaccessible.h)
@@ -120,6 +120,7 @@ public:
         }
     };
 
+    // --- Core accessibility tree API ---
     virtual const IAccessible* accessibleParent() const = 0;
     virtual size_t accessibleChildCount() const = 0;
     virtual const IAccessible* accessibleChild(size_t i) const = 0;
@@ -146,9 +147,12 @@ public:
     virtual int accessibleCursorPosition() const = 0;
 
     virtual QString accessibleText(int startOffset, int endOffset) const = 0;
-    virtual QString accessibleTextBeforeOffset(int offset, TextBoundaryType boundaryType, int* startOffset, int* endOffset) const = 0;
-    virtual QString accessibleTextAfterOffset(int offset, TextBoundaryType boundaryType, int* startOffset, int* endOffset) const = 0;
-    virtual QString accessibleTextAtOffset(int offset, TextBoundaryType boundaryType, int* startOffset, int* endOffset) const = 0;
+    virtual QString accessibleTextBeforeOffset(int offset, TextBoundaryType boundaryType,
+                                               int* startOffset, int* endOffset) const = 0;
+    virtual QString accessibleTextAfterOffset(int offset, TextBoundaryType boundaryType,
+                                              int* startOffset, int* endOffset) const = 0;
+    virtual QString accessibleTextAtOffset(int offset, TextBoundaryType boundaryType,
+                                           int* startOffset, int* endOffset) const = 0;
     virtual int accessibleCharacterCount() const = 0;
 
     // ListView item Interface
@@ -158,7 +162,26 @@ public:
 
     virtual void setState(State state, bool arg) = 0;
     virtual async::Channel<IAccessible::State, bool> accessibleStateChanged() const = 0;
+
+    //
+    // NEW: rich musical context for screen readers
+    //
+    // These are intentionally *not* pure virtual so we don't break all implementers.
+    // Generic UI widgets can just inherit the empty default.
+    // Score elements (notes, measures, staffs, etc.) should override.
+    //
+    // Example for a Note might be:
+    //   "Voice 1, C♯4 quarter note; cross-staff above; too high for amateurs; Measure 12; Staff Piano RH"
+    //
+    // This is basically what Note::screenReaderInfo() already builds. :contentReference[oaicite:2]{index=2}
+    //
+    virtual QString accessibleScreenReaderInfo() const { return QString(); }
+
+    // Extra attachments like articulations, ties, slurs, accents, etc.
+    // (Note::accessibleExtraInfo() already collects these, plus tie info.) :contentReference[oaicite:3]{index=3}
+    virtual QString accessibleExtraInfo() const { return QString(); }
 };
-}
+
+} // namespace muse::accessibility
 
 #endif // MUSE_ACCESSIBILITY_IACCESSIBLE_H

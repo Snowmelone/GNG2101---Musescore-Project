@@ -215,3 +215,9 @@ endif(OS_IS_WIN)
 # Add VTest
 ###########################################
 add_subdirectory(vtest)
+
+target_sources(muse_accessibility PRIVATE
+    internal/accessibilitycontroller.cpp
+    internal/accessiblescoreelement.cpp
+    # ... whatever else is already there ...
+)

@@ -57,7 +57,8 @@ if (MUSE_MODULE_ACCESSIBILITY_TRACE)
 endif()
 
 if (QT_SUPPORT)
-    list(APPEND MODULE_LINK Qt::Quick)
+    find_package(Qt6 COMPONENTS TextToSpeech REQUIRED)
+    list(APPEND MODULE_LINK Qt::Quick Qt::TextToSpeech)
 endif()
 
 setup_module()
