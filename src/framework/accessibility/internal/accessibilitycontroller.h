@@ -9,6 +9,7 @@
  * Copyright (C) 2021 MuseScore Limited and others
  */
 
+#include <QObject>
 #include <QRect>
 #include <QWindow>
 #include <QTimer>
@@ -21,25 +22,40 @@ class QTextToSpeech;
 class QAccessibleEvent;
 class QAccessibleInterface;
 
+#include "modularity/ioc.h"
+
+// Go one level up from /internal to find these
+#include "../iaccessible.h"
+#include "../iaccessibilitycontroller.h"
+
 #include "accessibleobject.h"
 #include "accessibleiteminterface.h"
 #include "accessiblestub.h"
-#include "iqaccessibleinterfaceregister.h"
 
 #include "log.h"
 
 namespace muse {
 namespace accessibility {
 
-class AccessibilityController : public muse::Injectable, public IAccessible
+class AccessibilityController : public IAccessibilityController, public IAccessible
 {
 public:
+    // Bring IAccessible nested types into scope so we can use short names
+    using State            = IAccessible::State;
+    using TextBoundaryType = IAccessible::TextBoundaryType;
+    using Role             = IAccessible::Role;
+    using Property         = IAccessible::Property;
+    using Val              = muse::Val;
+
     explicit AccessibilityController(const muse::modularity::ContextPtr& iocCtx);
     ~AccessibilityController() override;
 
+    // Satisfy IAccessible pure virtual
+    muse::modularity::ContextPtr iocContext() const override { return m_iocContext; }
+
     // Configuration
     void setAccessibilityEnabled(bool enabled);
-    // Backward-compatible shim
+    // Backward compatible shim
     void setAccesibilityEnabled(bool enabled) { setAccessibilityEnabled(enabled); }
     void setIgnoreQtAccessibilityEvents(bool ignore);
 
@@ -48,18 +64,18 @@ public:
     QString announcement() const;
     void repeatCurrentElementInfo();
 
-    // IAccessible interface (root)
-    const IAccessible* accessibleRoot() const override;
+    // Controller extras
+    const IAccessible* accessibleRoot() const;
     const IAccessible* lastFocused() const;
     bool needToVoicePanelInfo() const;
     QString currentPanelAccessibleName() const;
 
     // IAccessible tree navigation
-    IAccessible* accessibleParent() const override;
+    const IAccessible* accessibleParent() const override;
     size_t accessibleChildCount() const override;
-    IAccessible* accessibleChild(size_t i) const override;
+    const IAccessible* accessibleChild(size_t i) const override;
     QWindow* accessibleWindow() const override;
-    IAccessible::Role accessibleRole() const override;
+    Role accessibleRole() const override;
     QString accessibleName() const override;
     QString accessibleDescription() const override;
     bool accessibleState(State st) const override;
@@ -78,23 +94,24 @@ public:
     QString accessibleTextAtOffset(int, TextBoundaryType, int*, int*) const override;
     int accessibleCharacterCount() const override;
     int accessibleRowIndex() const override;
-    async::Channel<IAccessible::Property, Val> accessiblePropertyChanged() const override;
-    async::Channel<IAccessible::State, bool> accessibleStateChanged() const override;
+    async::Channel<Property, Val> accessiblePropertyChanged() const override;
+    async::Channel<State, bool> accessibleStateChanged() const override;
     void setState(State, bool) override;
 
-    // Extended speech helpers (public so other helpers like AccessibilityRepeater can reuse)
+    // Extended speech helper (public so helpers like AccessibilityRepeater can reuse)
     QString buildSpokenDescriptionFor(const IAccessible* acc) const;
 
-    // Exposed signals/channels
+    // Exposed signals or channels
     async::Channel<QAccessibleEvent*> eventSent() const;
 
     // Factory hook for Qt
-    QAccessibleInterface* accessibleInterface(QObject*);
+    static QAccessibleInterface* accessibleInterface(QObject*);
 
-protected:
-    bool eventFilter(QObject* watched, QEvent* event) override;
+public:
+    // This is used from an internal QObject based event filter
+    bool eventFilter(QObject* watched, QEvent* event);
 
-private:
+public:
     // Internal item wrapper used by controller
     struct Item {
         IAccessible* item = nullptr;
@@ -136,6 +153,9 @@ private:
     bool m_needToVoicePanelInfo = false;
     bool m_ignorePanelChangingVoice = false;
 
+    // IOC context
+    muse::modularity::ContextPtr m_iocContext;
+
     // Focus tracking
     IAccessible* m_lastFocused = nullptr;
     IAccessible* m_preDispatchFocus = nullptr;
@@ -147,13 +167,17 @@ private:
     QHash<const IAccessible*, Item> m_allItems;
     IAccessible* m_pretendFocus = nullptr;
 
-    // Hotkey config
+    // Repeat spoken description hotkey
     bool m_repeatHotkeyEnabled = true;
-    int  m_repeatHotkey = Qt::Key_R;
+    int  m_repeatHotkey = Qt::Key_F12;
 
-    // Timers / TTS
+
+    // Timers or TTS
     QTimer m_pretendFocusTimer;
     QTextToSpeech* m_textToSpeech = nullptr;
+
+    // Global key filter object (QObject based)
+    QObject* m_keyFilter = nullptr;
 
     // Channel
     async::Channel<QAccessibleEvent*> m_eventSent;

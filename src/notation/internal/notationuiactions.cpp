@@ -1531,6 +1531,27 @@ const UiActionList NotationUiActions::s_actions = {
              TranslatableString("action", "Zoom to two pages"),
              TranslatableString("action", "Zoom to two pages")
              ),
+
+    // Accessibility playback helpers
+    UiAction("play-current-note",
+             mu::context::UiCtxProjectOpened,
+             mu::context::CTX_NOTATION_OPENED,
+             TranslatableString("action", "Accessibility: Play current note"),
+             TranslatableString("action", "Accessibility: play current note")
+             ),
+    UiAction("play-current-measure",
+             mu::context::UiCtxProjectOpened,
+             mu::context::CTX_NOTATION_OPENED,
+             TranslatableString("action", "Accessibility: Play current measure"),
+             TranslatableString("action", "Accessibility: play current measure")
+             ),
+    UiAction("play-current-staff",
+             mu::context::UiCtxProjectOpened,
+             mu::context::CTX_NOTATION_OPENED,
+             TranslatableString("action", "Accessibility: Play current staff"),
+             TranslatableString("action", "Accessibility: play current staff")
+             ),
+
     UiAction("get-location",
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,

@@ -17,7 +17,7 @@ class AccessibilityRepeater : public QObject
 
 public:
     explicit AccessibilityRepeater(QObject* parent = nullptr);
-    ~AccessibilityRepeater();
+    ~AccessibilityRepeater() override;
 
     // Call this when the user presses the repeat shortcut
     void repeatCurrentElement();

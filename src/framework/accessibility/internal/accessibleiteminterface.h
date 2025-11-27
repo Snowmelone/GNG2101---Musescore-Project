@@ -30,13 +30,18 @@
 #include "ui/iinteractiveprovider.h"
 
 namespace muse::accessibility {
-class AccessibleItemInterface : public QAccessibleInterface, public QAccessibleValueInterface, public QAccessibleTextInterface,
-    public QAccessibleTableCellInterface, public muse::Injectable
+
+class AccessibleItemInterface :
+        public QAccessibleInterface,
+        public QAccessibleValueInterface,
+        public QAccessibleTextInterface,
+        public QAccessibleTableCellInterface,
+        public muse::Injectable
 {
     Inject<ui::IInteractiveProvider> interactiveProvider = { this };
 
 public:
-    AccessibleItemInterface(AccessibleObject* object);
+    explicit AccessibleItemInterface(AccessibleObject* object);
 
     bool isValid() const override;
     QObject* object() const override;
@@ -56,14 +61,14 @@ public:
     QString text(QAccessible::Text) const override;
     void setText(QAccessible::Text, const QString& text) override;
 
-    // Value Interface
+    // Value interface
     QVariant currentValue() const override;
     void setCurrentValue(const QVariant& value) override;
     QVariant maximumValue() const override;
     QVariant minimumValue() const override;
     QVariant minimumStepSize() const override;
 
-    // Text Interface
+    // Text interface
     void selection(int selectionIndex, int* startOffset, int* endOffset) const override;
     int selectionCount() const override;
     void addSelection(int startOffset, int endOffset) override;
@@ -74,18 +79,21 @@ public:
     void setCursorPosition(int position) override;
 
     QString text(int startOffset, int endOffset) const override;
-    QString textBeforeOffset(int offset, QAccessible::TextBoundaryType boundaryType, int* startOffset, int* endOffset) const override;
-    QString textAfterOffset(int offset, QAccessible::TextBoundaryType boundaryType, int* startOffset, int* endOffset) const override;
-    QString textAtOffset(int offset, QAccessible::TextBoundaryType boundaryType, int* startOffset, int* endOffset) const override;
+    QString textBeforeOffset(int offset, QAccessible::TextBoundaryType boundaryType,
+                             int* startOffset, int* endOffset) const override;
+    QString textAfterOffset(int offset, QAccessible::TextBoundaryType boundaryType,
+                            int* startOffset, int* endOffset) const override;
+    QString textAtOffset(int offset, QAccessible::TextBoundaryType boundaryType,
+                         int* startOffset, int* endOffset) const override;
     int characterCount() const override;
 
     QRect characterRect(int offset) const override;
     int offsetAtPoint(const QPoint& point) const override;
 
     void scrollToSubstring(int startIndex, int endIndex) override;
-    QString attributes(int /* offset */, int* startOffset, int* endOffset) const override;
+    QString attributes(int offset, int* startOffset, int* endOffset) const override;
 
-    // Table cell(list view item) Interface
+    // Table cell / list item interface
     bool isSelected() const override;
 
     QList<QAccessibleInterface*> columnHeaderCells() const override;
@@ -101,13 +109,13 @@ protected:
     void* interface_cast(QAccessible::InterfaceType t) override;
 
 private:
-
     IAccessible::TextBoundaryType muBoundaryType(QAccessible::TextBoundaryType qtBoundaryType) const;
     QString announcement() const;
     QString description() const;
 
     AccessibleObject* m_object = nullptr;
 };
-}
+
+} // namespace muse::accessibility
 
 #endif // MUSE_ACCESSIBILITY_ACCESSIBLEITEMINTERFACE_H

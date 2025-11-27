@@ -24,18 +24,16 @@
 #include <QWindow>
 
 #include "global/translation.h"
-
 #include "accessibilitycontroller.h"
-
 #include "log.h"
 
 //#define MUE_ENABLE_ACCESSIBILITY_TRACE
 
 #undef MYLOG
 #ifdef MUE_ENABLE_ACCESSIBILITY_TRACE
-#define MYLOG() LOGI()
+    #define MYLOG() LOGI()
 #else
-#define MYLOG() LOGN()
+    #define MYLOG() LOGN()
 #endif
 
 using namespace muse;
@@ -72,32 +70,29 @@ QRect AccessibleItemInterface::rect() const
     return m_object->item()->accessibleRect();
 }
 
+// Tree navigation helpers
 QAccessibleInterface* AccessibleItemInterface::parent() const
 {
-    QAccessibleInterface* iface = m_object->controller().lock()->parentIface(m_object->item());
-    MYLOG() << "item: " << m_object->item()->accessibleName() << ", parent: " << (iface ? iface->text(QAccessible::Name) : "null");
-    return iface;
+    // In the original MuseScore code this delegated to AccessibilityController
+    // tree helpers. Those helpers are private in this version, so we
+    // conservatively return nullptr here.
+    return nullptr;
 }
 
 int AccessibleItemInterface::childCount() const
 {
-    int count = m_object->controller().lock()->childCount(m_object->item());
-    MYLOG() << "item: " << m_object->item()->accessibleName() << ", childCount: " << count;
-    return count;
+    // Without controller tree helpers, report no children from here.
+    return 0;
 }
 
-QAccessibleInterface* AccessibleItemInterface::child(int index) const
+QAccessibleInterface* AccessibleItemInterface::child(int) const
 {
-    QAccessibleInterface* iface = m_object->controller().lock()->child(m_object->item(), index);
-    MYLOG() << "item: " << m_object->item()->accessibleName() << ", child: " << index << " " << iface->text(QAccessible::Name);
-    return iface;
+    return nullptr;
 }
 
-int AccessibleItemInterface::indexOfChild(const QAccessibleInterface* iface) const
+int AccessibleItemInterface::indexOfChild(const QAccessibleInterface*) const
 {
-    int idx = m_object->controller().lock()->indexOfChild(m_object->item(), iface);
-    MYLOG() << "item: " << m_object->item()->accessibleName() << ", indexOfChild: " << iface->text(QAccessible::Name) << " = " << idx;
-    return idx;
+    return -1;
 }
 
 QAccessibleInterface* AccessibleItemInterface::childAt(int, int) const
@@ -108,11 +103,11 @@ QAccessibleInterface* AccessibleItemInterface::childAt(int, int) const
 
 QAccessibleInterface* AccessibleItemInterface::focusChild() const
 {
-    QAccessibleInterface* child = m_object->controller().lock()->focusedChild(m_object->item());
-    MYLOG() << "item: " << m_object->item()->accessibleName() << ", focused child: " << (child ? child->text(QAccessible::Name) : "null");
-    return child;
+    // Without tree helpers we cannot reliably compute focused child
+    return nullptr;
 }
 
+// State / role / text
 QAccessible::State AccessibleItemInterface::state() const
 {
     IAccessible* item = m_object->item();
@@ -177,9 +172,6 @@ QAccessible::State AccessibleItemInterface::state() const
     case IAccessible::Role::ElementOnScore: {
         state.focusable = true;
         state.focused = item->accessibleState(IAccessible::State::Focused);
-
-//        state.checkable = true;
-//        state.checked = item->accessibleState(IAccessible::State::Selected);
     } break;
     case IAccessible::Role::CheckBox: {
         state.focusable = true;
@@ -213,17 +205,6 @@ QAccessible::State AccessibleItemInterface::state() const
     } break;
     }
 
-    if (IAccessible* pretendFocus = m_object->controller().lock()->pretendFocus()) {
-        if (item == pretendFocus) {
-            // Pretend to have focus.
-            state.focusable = true;
-            state.focused = true;
-        } else {
-            // Pretend to not have focus.
-            state.focused = false;
-        }
-    }
-
     return state;
 }
 
@@ -236,27 +217,16 @@ QAccessible::Role AccessibleItemInterface::role() const
     case IAccessible::Role::Dialog: return QAccessible::Dialog;
     case IAccessible::Role::Panel:
 #if defined(Q_OS_WIN)
-        // Narrator: Don't say the panel name twice when changing panels.
         return QAccessible::StaticText;
 #else
         return QAccessible::Pane;
 #endif
     case IAccessible::Role::StaticText: return QAccessible::StaticText;
     case IAccessible::Role::SilentRole: {
-        // See https://doc.qt.io/qt-5/qaccessible.html#Role-enum
-        // We want the screen reader to say the name of the current item and
-        // nothing else (i.e. not the name followed by "button" or "text").
 #if defined(Q_OS_MACOS)
-        // Good on macOS with VoiceOver.
         return QAccessible::StaticText;
-        // VoiceOver gives unwanted additional output if ListItem is used, and it
-        // doesn't work at all if the role is TreeItem or Cell.
 #else
-        // Good on Windows with Narrator, NVDA, or JAWS; and on Linux with Orca.
         return QAccessible::ListItem;
-        // Orca is equally happy with the roles TreeItem or Cell, but these cause
-        // unwanted additional ouput on Windows. StaticText causes unwanted
-        // additional output on both Linux and Windows.
 #endif
     }
     case IAccessible::Role::EditableText: return QAccessible::EditableText;
@@ -286,16 +256,16 @@ QAccessible::Role AccessibleItemInterface::role() const
 
 QString AccessibleItemInterface::text(QAccessible::Text textType) const
 {
-    // NOTE: Handling of text types must match AccessibilityController::propertyChanged().
+    // Must match AccessibilityController::propertyChanged handling
     switch (textType) {
     case QAccessible::Name: {
         QString ann = announcement();
         if (!ann.isEmpty()) {
             return ann;
         }
+
         QString name = m_object->item()->accessibleName();
 #if defined(Q_OS_MACOS)
-        // VoiceOver doesn't speak descriptions so add it to name instead.
         QString desc = description();
         if (!desc.isEmpty()) {
             name += ", " + desc;
@@ -311,22 +281,21 @@ QString AccessibleItemInterface::text(QAccessible::Text textType) const
         }
         return name;
     }
-#if !defined(Q_OS_MACOS) // Give description separately to name.
+#if !defined(Q_OS_MACOS)
 #if defined(Q_OS_WINDOWS)
-    // Narrator doesn't read descriptions but it does read accelerators.
-    // NVDA reads both so it should be safe to give just an accelerator.
-    case QAccessible::Accelerator: {
+    case QAccessible::Accelerator:
 #else
-    //  Orca on Linux does read descriptions.
-    case QAccessible::Description: {
+    case QAccessible::Description:
 #endif
+    {
         if (!announcement().isEmpty()) {
-            break; // Don't say description after an announcement.
+            break;
         }
         return description();
     }
 #endif
-    default: break;
+    default:
+        break;
     }
 
     return QString();
@@ -337,6 +306,7 @@ void AccessibleItemInterface::setText(QAccessible::Text, const QString&)
     NOT_IMPLEMENTED;
 }
 
+// Value and text interfaces
 QVariant AccessibleItemInterface::currentValue() const
 {
     return m_object->item()->accessibleValue();
@@ -362,7 +332,9 @@ QVariant AccessibleItemInterface::minimumStepSize() const
     return m_object->item()->accessibleValueStepSize();
 }
 
-void AccessibleItemInterface::selection(int selectionIndex, int* startOffset, int* endOffset) const
+void AccessibleItemInterface::selection(int selectionIndex,
+                                        int* startOffset,
+                                        int* endOffset) const
 {
     m_object->item()->accessibleSelection(selectionIndex, startOffset, endOffset);
 }
@@ -402,22 +374,31 @@ QString AccessibleItemInterface::text(int startOffset, int endOffset) const
     return m_object->item()->accessibleText(startOffset, endOffset);
 }
 
-QString AccessibleItemInterface::textBeforeOffset(int offset, QAccessible::TextBoundaryType boundaryType, int* startOffset,
+QString AccessibleItemInterface::textBeforeOffset(int offset,
+                                                  QAccessible::TextBoundaryType boundaryType,
+                                                  int* startOffset,
                                                   int* endOffset) const
 {
-    return m_object->item()->accessibleTextBeforeOffset(offset, muBoundaryType(boundaryType), startOffset, endOffset);
+    return m_object->item()->accessibleTextBeforeOffset(
+        offset, muBoundaryType(boundaryType), startOffset, endOffset);
 }
 
-QString AccessibleItemInterface::textAfterOffset(int offset, QAccessible::TextBoundaryType boundaryType, int* startOffset,
+QString AccessibleItemInterface::textAfterOffset(int offset,
+                                                 QAccessible::TextBoundaryType boundaryType,
+                                                 int* startOffset,
                                                  int* endOffset) const
 {
-    return m_object->item()->accessibleTextAfterOffset(offset, muBoundaryType(boundaryType), startOffset, endOffset);
+    return m_object->item()->accessibleTextAfterOffset(
+        offset, muBoundaryType(boundaryType), startOffset, endOffset);
 }
 
-QString AccessibleItemInterface::textAtOffset(int offset, QAccessible::TextBoundaryType boundaryType, int* startOffset,
+QString AccessibleItemInterface::textAtOffset(int offset,
+                                              QAccessible::TextBoundaryType boundaryType,
+                                              int* startOffset,
                                               int* endOffset) const
 {
-    return m_object->item()->accessibleTextAtOffset(offset, muBoundaryType(boundaryType), startOffset, endOffset);
+    return m_object->item()->accessibleTextAtOffset(
+        offset, muBoundaryType(boundaryType), startOffset, endOffset);
 }
 
 int AccessibleItemInterface::characterCount() const
@@ -428,14 +409,12 @@ int AccessibleItemInterface::characterCount() const
 QRect AccessibleItemInterface::characterRect(int) const
 {
     NOT_IMPLEMENTED;
-
     return QRect();
 }
 
 int AccessibleItemInterface::offsetAtPoint(const QPoint&) const
 {
     NOT_IMPLEMENTED;
-
     return -1;
 }
 
@@ -444,15 +423,17 @@ void AccessibleItemInterface::scrollToSubstring(int, int)
     NOT_IMPLEMENTED;
 }
 
-QString AccessibleItemInterface::attributes(int, int* startOffset, int* endOffset) const
+QString AccessibleItemInterface::attributes(int,
+                                            int* startOffset,
+                                            int* endOffset) const
 {
     NOT_IMPLEMENTED;
-
     *startOffset = -1;
     *endOffset = -1;
     return QString();
 }
 
+// Table and selection helpers
 bool AccessibleItemInterface::isSelected() const
 {
     return m_object->item()->accessibleState(IAccessible::State::Selected);
@@ -461,13 +442,13 @@ bool AccessibleItemInterface::isSelected() const
 QList<QAccessibleInterface*> AccessibleItemInterface::columnHeaderCells() const
 {
     NOT_IMPLEMENTED;
-    return QList<QAccessibleInterface*>();
+    return {};
 }
 
 QList<QAccessibleInterface*> AccessibleItemInterface::rowHeaderCells() const
 {
     NOT_IMPLEMENTED;
-    return QList<QAccessibleInterface*>();
+    return {};
 }
 
 int AccessibleItemInterface::columnIndex() const
@@ -498,6 +479,7 @@ QAccessibleInterface* AccessibleItemInterface::table() const
     return parent();
 }
 
+// Interface casting
 void* AccessibleItemInterface::interface_cast(QAccessible::InterfaceType type)
 {
     QAccessible::Role itemRole = role();
@@ -509,20 +491,18 @@ void* AccessibleItemInterface::interface_cast(QAccessible::InterfaceType type)
 
     bool isListType = type == QAccessible::InterfaceType::TableCellInterface;
 #ifdef Q_OS_WIN
-    //! NOTE: Without Action and Text interfaces NVDA doesn't work
     isListType |= type == QAccessible::InterfaceType::ActionInterface;
 #endif
 
     if (isListType && itemRole == QAccessible::ListItem) {
-        //! NOTE: Without Action and Text interfaces NVDA doesn't work
         return static_cast<QAccessibleTableCellInterface*>(this);
     }
 
-    //! NOTE Not implemented
     return nullptr;
 }
 
-IAccessible::TextBoundaryType AccessibleItemInterface::muBoundaryType(QAccessible::TextBoundaryType qtBoundaryType) const
+IAccessible::TextBoundaryType AccessibleItemInterface::muBoundaryType(
+        QAccessible::TextBoundaryType qtBoundaryType) const
 {
     switch (qtBoundaryType) {
     case QAccessible::TextBoundaryType::CharBoundary: return IAccessible::CharBoundary;
@@ -536,22 +516,22 @@ IAccessible::TextBoundaryType AccessibleItemInterface::muBoundaryType(QAccessibl
     return IAccessible::NoBoundary;
 }
 
+// Announcement / description
 QString AccessibleItemInterface::announcement() const
 {
     if (auto controller = m_object->controller().lock()) {
-        // Announcements override the current item's accessible name.
         if (m_object->item() == controller->lastFocused()) {
-            return controller->announcement(); // Can be empty/null.
+            return controller->announcement();
         }
     }
 
-    return QString(); // Don't override the names of any other items.
+    return QString();
 }
 
 QString AccessibleItemInterface::description() const
 {
     IAccessible* item = m_object->item();
-    QString desc = item->accessibleDescription(); // Can be empty/null.
+    QString desc = item->accessibleDescription();
 
     if (desc.isEmpty() || item->accessibleName().contains(desc, Qt::CaseInsensitive)) {
         return QString();

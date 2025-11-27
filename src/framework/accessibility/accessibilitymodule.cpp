@@ -32,6 +32,7 @@
 #include "global/api/iapiregister.h"
 #include "api/accessibilityapi.h"
 
+#include "iaccessible.h"
 #include "log.h"
 
 using namespace muse::accessibility;
@@ -48,7 +49,11 @@ void AccessibilityModule::registerExports()
     m_controller = std::make_shared<AccessibilityController>(iocContext());
 
     ioc()->registerExport<IAccessibilityConfiguration>(moduleName(), m_configuration);
-    ioc()->registerExport<IAccessibilityController>(moduleName(), m_controller);
+    // Export the controller as the root IAccessible implementation
+    ioc()->registerExport<IAccessible>(
+        moduleName(),
+        std::static_pointer_cast<IAccessible>(m_controller)
+    );
     ioc()->registerExport<IQAccessibleInterfaceRegister>(moduleName(), new QAccessibleInterfaceRegister());
 }
 

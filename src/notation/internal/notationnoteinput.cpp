@@ -158,8 +158,13 @@ void NotationNoteInput::startNoteInput(NoteInputMethod method, bool focusNotatio
     notifyAboutStateChanged();
 
     m_interaction->showItem(el);
-    accessibilityController()->announce(nameOfNoteInputMethod(method).translated());
+
+    // Announce note input mode to the screen reader, if accessibility is available
+    if (auto acc = accessibilityController()) {
+        acc->announce(nameOfNoteInputMethod(method).translated());
+    }
 }
+
 
 EngravingItem* NotationNoteInput::resolveNoteInputStartPosition() const
 {
@@ -382,12 +387,13 @@ void NotationNoteInput::endNoteInput(bool resetState)
     is.setNoteEntryMode(false);
 
     if (is.slur()) {
-        const std::vector<mu::engraving::SpannerSegment*>& el = is.slur()->spannerSegments();
-        if (!el.empty()) {
-            el.front()->setSelected(false);
+        const std::vector<mu::engraving::SpannerSegment*>& segs = is.slur()->spannerSegments();
+        if (!segs.empty()) {
+            segs.front()->setSelected(false);
         }
-        is.setSlur(0);
     }
+
+    is.setSlur(nullptr);
 
     if (resetState) {
         is.setTrack(muse::nidx);
@@ -398,8 +404,14 @@ void NotationNoteInput::endNoteInput(bool resetState)
 
     notifyAboutNoteInputEnded();
     updateInputState();
-    accessibilityController()->announce(TranslatableString("noteInputMethod", "Normal mode").translated());
+
+    // Announce leaving note input mode when accessibility is available
+    if (auto acc = accessibilityController()) {
+        acc->announce(TranslatableString("noteInputMethod", "Normal mode").translated());
+    }
 }
+
+
 
 Channel</*focusNotation*/ bool> NotationNoteInput::noteInputStarted() const
 {

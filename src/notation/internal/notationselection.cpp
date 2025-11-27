@@ -33,9 +33,10 @@
 #include "log.h"
 
 // NEW: accessibility plumbing
-#include "accessibility/api/iaccessibilitycontroller.h"
-#include "accessibility/internal/accessible_score_element.h"
+#include "framework/accessibility/iaccessibilitycontroller.h"
+#include "framework/accessibility/internal/accessiblescoreelement.h"
 #include "modularity/ioc.h"
+
 
 using namespace muse;
 using namespace mu::notation;
@@ -184,10 +185,9 @@ void NotationSelection::onElementHit(EngravingItem* el)
         // NOTE: if m_getScore doesn't expose iocContext(), you may need to adjust
         // this argument to whatever object in this layer has a ContextPtr.
         s_accScoreElem = new muse::accessibility::AccessibleScoreElement(
-            /* ctx   */ m_getScore->iocContext(),
-            /* elem  */ el,
-            /* win   */ win
-        );
+    el,
+    win
+);
 
         accCtrl->reg(s_accScoreElem);
     } else {

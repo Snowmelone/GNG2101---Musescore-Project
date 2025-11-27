@@ -60,6 +60,10 @@ static const ActionCode REPEAT_CODE("repeat");
 static const ActionCode PLAY_CHORD_SYMBOLS_CODE("play-chord-symbols");
 static const ActionCode PLAYBACK_SETUP("playback-setup");
 static const ActionCode TOGGLE_HEAR_PLAYBACK_WHEN_EDITING_CODE("toggle-hear-playback-when-editing");
+static const ActionCode PLAY_CURRENT_NOTE_CODE("play-current-note");
+static const ActionCode PLAY_CURRENT_MEASURE_CODE("play-current-measure");
+static const ActionCode PLAY_CURRENT_STAFF_CODE("play-current-staff");
+
 
 static AudioOutputParams makeReverbOutputParams()
 {
@@ -108,6 +112,11 @@ void PlaybackController::init()
     dispatcher()->reg(this, PLAYBACK_SETUP, this, &PlaybackController::openPlaybackSetupDialog);
     dispatcher()->reg(this, TOGGLE_HEAR_PLAYBACK_WHEN_EDITING_CODE, this, &PlaybackController::toggleHearPlaybackWhenEditing);
     dispatcher()->reg(this, "playback-reload-cache", this, &PlaybackController::reloadPlaybackCache);
+        // Screen reader helpers: play current note / range / staff
+    dispatcher()->reg(this, PLAY_CURRENT_NOTE_CODE, this, &PlaybackController::playCurrentNote);
+    dispatcher()->reg(this, PLAY_CURRENT_MEASURE_CODE, this, &PlaybackController::playCurrentMeasure);
+    dispatcher()->reg(this, PLAY_CURRENT_STAFF_CODE, this, &PlaybackController::playCurrentStaff);
+
 
     dispatcher()->reg(this, "process-online-sounds", this, &PlaybackController::processOnlineSounds);
     dispatcher()->reg(this, "clear-online-sounds-cache", this, &PlaybackController::clearOnlineSoundsCache);
@@ -1870,4 +1879,77 @@ muse::Progress PlaybackController::onlineSoundsProcessingProgress() const
 muse::audio::secs_t PlaybackController::playedTickToSecs(int tick) const
 {
     return secs_t(notationPlayback()->playedTickToSec(tick));
+}
+
+// Plays the currently selected note / chord as a short preview.
+// Uses the same machinery as "play notes while editing".
+// Plays the currently selected notes or chord as a short preview.
+// Uses the same machinery as "play notes when editing".
+void PlaybackController::playCurrentNote()
+{
+    INotationSelectionPtr sel = selection();
+    if (!sel) {
+        return;
+    }
+
+    auto items = sel->elements();
+    if (items.empty()) {
+        return;
+    }
+
+    // Convert selection items to the vector type expected by playElements
+    std::vector<const EngravingItem*> elements;
+    elements.reserve(items.size());
+    for (EngravingItem* item : items) {
+        if (!item) {
+            continue;
+        }
+        elements.push_back(item);
+    }
+
+    if (elements.empty()) {
+        return;
+    }
+
+    // Default preview parameters, same path that is used when
+    // "Play notes when editing" is enabled.
+    PlayParams params;
+    playElements(elements, params, /*isMidi*/ false);
+}
+
+// Helper: play whatever range selection is active, and stop when it ends.
+// This uses the existing "range playback" logic that only plays selected staves.
+void PlaybackController::playCurrentRangeSelection()
+{
+    if (!isPlayAllowed()) {
+        return;
+    }
+
+    INotationSelectionPtr sel = selection();
+    if (!sel || !sel->isRange()) {
+        // For now we only support explicit range selections for bar or staff playback.
+        return;
+    }
+
+    if (!currentPlayer()) {
+        return;
+    }
+
+    // Seek to the start of the selected range and play.
+    seekRangeSelection();
+    play();
+}
+
+// For now, "measure" and "staff" both reuse the current range selection.
+// The difference is how the user creates the selection:
+//   measure  range selection covering one bar
+//   staff    range selection covering an entire staff span
+void PlaybackController::playCurrentMeasure()
+{
+    playCurrentRangeSelection();
+}
+
+void PlaybackController::playCurrentStaff()
+{
+    playCurrentRangeSelection();
 }

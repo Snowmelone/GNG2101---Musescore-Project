@@ -35,8 +35,10 @@ class QWindow;
 
 namespace muse::accessibility {
 
-class IAccessible
+class IAccessible : MODULE_EXPORT_INTERFACE
 {
+    INTERFACE_ID(IAccessible)
+
 public:
     virtual ~IAccessible() = default;
 
@@ -120,7 +122,7 @@ public:
         }
     };
 
-    // --- Core accessibility tree API ---
+    // Core accessibility tree API
     virtual const IAccessible* accessibleParent() const = 0;
     virtual size_t accessibleChildCount() const = 0;
     virtual const IAccessible* accessibleChild(size_t i) const = 0;
@@ -134,13 +136,13 @@ public:
     virtual QRect accessibleRect() const = 0;
     virtual bool accessibleIgnored() const = 0;
 
-    // Value Interface
+    // Value interface
     virtual QVariant accessibleValue() const = 0;
     virtual QVariant accessibleMaximumValue() const = 0;
     virtual QVariant accessibleMinimumValue() const = 0;
     virtual QVariant accessibleValueStepSize() const = 0;
 
-    // Text Interface
+    // Text interface
     virtual void accessibleSelection(int selectionIndex, int* startOffset, int* endOffset) const = 0;
     virtual int accessibleSelectionCount() const = 0;
 
@@ -155,7 +157,7 @@ public:
                                            int* startOffset, int* endOffset) const = 0;
     virtual int accessibleCharacterCount() const = 0;
 
-    // ListView item Interface
+    // ListView item interface
     virtual int accessibleRowIndex() const = 0;
 
     virtual async::Channel<IAccessible::Property, Val> accessiblePropertyChanged() const = 0;
@@ -164,21 +166,13 @@ public:
     virtual async::Channel<IAccessible::State, bool> accessibleStateChanged() const = 0;
 
     //
-    // NEW: rich musical context for screen readers
+    // New: rich musical context for screen readers
     //
-    // These are intentionally *not* pure virtual so we don't break all implementers.
-    // Generic UI widgets can just inherit the empty default.
-    // Score elements (notes, measures, staffs, etc.) should override.
-    //
-    // Example for a Note might be:
-    //   "Voice 1, C♯4 quarter note; cross-staff above; too high for amateurs; Measure 12; Staff Piano RH"
-    //
-    // This is basically what Note::screenReaderInfo() already builds. :contentReference[oaicite:2]{index=2}
+    // Default empty so existing widgets do not break.
     //
     virtual QString accessibleScreenReaderInfo() const { return QString(); }
 
     // Extra attachments like articulations, ties, slurs, accents, etc.
-    // (Note::accessibleExtraInfo() already collects these, plus tie info.) :contentReference[oaicite:3]{index=3}
     virtual QString accessibleExtraInfo() const { return QString(); }
 };
 

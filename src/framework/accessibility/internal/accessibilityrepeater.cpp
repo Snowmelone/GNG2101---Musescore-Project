@@ -1,4 +1,7 @@
 #include "accessibilityrepeater.h"
+
+#include <QStringList>
+
 #include "log.h"
 
 using namespace muse::accessibility;
@@ -11,7 +14,7 @@ AccessibilityRepeater::AccessibilityRepeater(QObject* parent)
 
 AccessibilityRepeater::~AccessibilityRepeater()
 {
-    // QTextToSpeech is deleted automatically by Qt parent-child system
+    // QTextToSpeech is owned by QObject parent
 }
 
 void AccessibilityRepeater::repeatCurrentElement()
@@ -24,17 +27,11 @@ void AccessibilityRepeater::repeatCurrentElement()
 
 QString AccessibilityRepeater::getCurrentElementInfo() const
 {
-    // Get the currently focused accessible item
     const IAccessible* focused = accessibilityController()->lastFocused();
     if (!focused) {
         return QStringLiteral("No element focused");
     }
 
-    // If it's a score element (note, rest, measure, barline, articulation, etc.)
-    // we prefer accessibleScreenReaderInfo() + accessibleExtraInfo()
-    // because that's where MuseScore encodes rich musical info:
-    // voice, pitch, duration, cross-staff, range warnings, measure number,
-    // staff name, ties, articulations, etc. :contentReference[oaicite:5]{index=5}
     if (focused->accessibleRole() == IAccessible::Role::ElementOnScore) {
         QString mainInfo = focused->accessibleScreenReaderInfo();
         QString extra    = focused->accessibleExtraInfo();
@@ -50,18 +47,22 @@ QString AccessibilityRepeater::getCurrentElementInfo() const
         if (!parts.isEmpty()) {
             return parts.join(QStringLiteral("; "));
         }
-        // fall through if empty
     }
 
-    // Generic UI fallback (buttons, panels, etc.)
     QStringList parts;
     const QString name = focused->accessibleName();
     const QString desc = focused->accessibleDescription();
     const QString val  = focused->accessibleValue().toString();
 
-    if (!name.isEmpty()) parts << name;
-    if (!desc.isEmpty()) parts << desc;
-    if (!val.isEmpty())  parts << QStringLiteral("value: ") + val;
+    if (!name.isEmpty()) {
+        parts << name;
+    }
+    if (!desc.isEmpty()) {
+        parts << desc;
+    }
+    if (!val.isEmpty()) {
+        parts << QStringLiteral("value: ") + val;
+    }
 
     if (parts.isEmpty()) {
         return QStringLiteral("Unknown element");
@@ -81,11 +82,10 @@ void AccessibilityRepeater::speak(const QString& text)
         return;
     }
 
-    // Stop any current speech and speak the new text
     if (m_speech->state() == QTextToSpeech::Speaking) {
         m_speech->stop();
     }
 
     m_speech->say(text);
-    LOGI() << "Speaking: " << text;
+    LOGI() << "Speaking:" << text;
 }

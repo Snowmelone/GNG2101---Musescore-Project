@@ -34,8 +34,12 @@ set(MODULE_SRC
 
     ${CMAKE_CURRENT_LIST_DIR}/internal/accessibilitycontroller.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/accessibilitycontroller.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/accessibilityrepeater.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/accessibilityrepeater.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/accessibleobject.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/accessibleobject.h
+    ${CMAKE_CURRENT_LIST_DIR}/internal/accessiblescoreelement.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/internal/accessiblescoreelement.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/accessiblestub.cpp
     ${CMAKE_CURRENT_LIST_DIR}/internal/accessiblestub.h
     ${CMAKE_CURRENT_LIST_DIR}/internal/accessibleiteminterface.cpp
@@ -50,7 +54,6 @@ if (OS_IS_LIN)
     # it needed to send a spontaneous event by activating navigation
     set(MODULE_INCLUDE_PRIVATE ${Qt6Core_PRIVATE_INCLUDE_DIRS})
 endif()
-
 
 if (MUSE_MODULE_ACCESSIBILITY_TRACE)
     set(MODULE_DEF ${MODULE_DEF} -DMUSE_MODULE_ACCESSIBILITY_TRACE )

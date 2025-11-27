@@ -79,7 +79,7 @@ public:
     struct PlayParams {
         PlayParams() {}
 
-        std::optional<muse::mpe::duration_t> duration; // no duration -> use default
+        std::optional<muse::mpe::duration_t> duration; // no duration means use default
         bool flushSound = true;
     };
 
@@ -93,6 +93,12 @@ public:
 
     virtual void seekElement(const notation::EngravingItem* element, bool flushSound = true) = 0;
     virtual void seekBeat(int measureIndex, int beatIndex, bool flushSound = true) = 0;
+
+    // Accessibility helpers for screen reader support
+    virtual void playCurrentNote() = 0;
+    virtual void playCurrentMeasure() = 0;
+    virtual void playCurrentStaff() = 0;
+    virtual void playCurrentRangeSelection() = 0;
 
     virtual bool actionChecked(const muse::actions::ActionCode& actionCode) const = 0;
     virtual muse::async::Channel<muse::actions::ActionCode> actionCheckedChanged() const = 0;

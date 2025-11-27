@@ -168,7 +168,6 @@ if (MUSE_COMPILE_USE_COMPILER_CACHE)
     include(SetupCompilerCache)
 endif(MUSE_COMPILE_USE_COMPILER_CACHE)
 
-
 ###########################################
 # Setup external dependencies
 ###########################################
@@ -198,7 +197,6 @@ endif()
 add_subdirectory(share)
 add_subdirectory(src)
 
-
 ###########################################
 # Setup Packaging
 ###########################################
@@ -215,9 +213,3 @@ endif(OS_IS_WIN)
 # Add VTest
 ###########################################
 add_subdirectory(vtest)
-
-target_sources(muse_accessibility PRIVATE
-    internal/accessibilitycontroller.cpp
-    internal/accessiblescoreelement.cpp
-    # ... whatever else is already there ...
-)

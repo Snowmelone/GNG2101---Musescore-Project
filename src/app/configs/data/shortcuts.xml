@@ -28,6 +28,9 @@
         <seq>Shift+F6</seq>
         <seq>Shift+`</seq>
     </SC>
+    <SC name="announce-focused-element">
+    <default>F12</default>
+</SC>
     <SC>
         <key>nav-next-panel</key>
         <seq>Tab</seq>

@@ -96,6 +96,11 @@ public:
     MOCK_METHOD((const std::map<muse::audio::TrackId, muse::audio::AudioResourceMeta>&), onlineSounds, (), (const, override));
     MOCK_METHOD(muse::async::Notification, onlineSoundsChanged, (), (const, override));
     MOCK_METHOD(muse::Progress, onlineSoundsProcessingProgress, (), (const, override));
+    MOCK_METHOD(void, playCurrentNote, (), (override));
+    MOCK_METHOD(void, playCurrentMeasure, (), (override));
+    MOCK_METHOD(void, playCurrentStaff, (), (override));
+    MOCK_METHOD(void, playCurrentRangeSelection, (), (override));
+
 };
 }
 

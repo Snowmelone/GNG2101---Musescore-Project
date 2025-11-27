@@ -473,9 +473,24 @@ void NotationActionController::init()
     registerAction("transpose-down", &Interaction::transposeSemitone, -1, PlayMode::PlayNote);
     registerAction("toggle-insert-mode", [this]() { toggleNoteInputInsert(); }, &NotationActionController::isNotEditingElement);
 
+        // Accessibility helpers: playback of current position
+    registerAction("play-current-note", [this]() {
+        playbackController()->playCurrentNote();
+    });
+
+    registerAction("play-current-measure", [this]() {
+        playbackController()->playCurrentMeasure();
+    });
+
+    registerAction("play-current-staff", [this]() {
+        playbackController()->playCurrentStaff();
+    });
+
     registerAction("get-location", &Interaction::getLocation, &Controller::isNotationPage);
+
     registerAction("toggle-mmrest", &Interaction::execute, &mu::engraving::Score::cmdToggleMmrest,
                    TranslatableString("undoableAction", "Toggle multimeasure rests"));
+
     registerAction("toggle-hide-empty", &Interaction::execute, &mu::engraving::Score::cmdToggleHideEmpty,
                    TranslatableString("undoableAction", "Toggle empty staves"));
 

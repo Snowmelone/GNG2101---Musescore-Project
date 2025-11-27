@@ -45,7 +45,10 @@
 #include "../isoundprofilesrepository.h"
 
 namespace mu::playback {
-class PlaybackController : public IPlaybackController, public muse::actions::Actionable, public muse::async::Asyncable
+
+class PlaybackController : public IPlaybackController,
+                           public muse::actions::Actionable,
+                           public muse::async::Asyncable
 {
     INJECT_STATIC(muse::actions::IActionsDispatcher, dispatcher)
     INJECT_STATIC(context::IGlobalContext, globalContext)
@@ -90,11 +93,15 @@ public:
 
     void playElements(const std::vector<const notation::EngravingItem*>& elements,
                       const PlayParams& params = PlayParams(), bool isMidi = false) override;
-    void playNotes(const notation::NoteValList& notes, notation::staff_idx_t staffIdx, const notation::Segment* segment,
+    void playNotes(const notation::NoteValList& notes,
+                   notation::staff_idx_t staffIdx,
+                   const notation::Segment* segment,
                    const PlayParams& params = PlayParams()) override;
     void playMetronome(int tick) override;
 
-    void triggerControllers(const muse::mpe::ControllerChangeEventList& list, notation::staff_idx_t staffIdx, int tick) override;
+    void triggerControllers(const muse::mpe::ControllerChangeEventList& list,
+                            notation::staff_idx_t staffIdx,
+                            int tick) override;
 
     void seekElement(const notation::EngravingItem* element, bool flushSound = true) override;
     void seekBeat(int measureIndex, int beatIndex, bool flushSound = true) override;
@@ -155,10 +162,13 @@ private:
     void onSelectionChanged();
     void seekRangeSelection();
 
-    void onAudioResourceChanged(const muse::audio::TrackId trackId, const mu::engraving::InstrumentTrackId& instrumentTrackId,
-                                const muse::audio::AudioResourceMeta& oldMeta, const muse::audio::AudioResourceMeta& newMeta);
+    void onAudioResourceChanged(const muse::audio::TrackId trackId,
+                                const mu::engraving::InstrumentTrackId& instrumentTrackId,
+                                const muse::audio::AudioResourceMeta& oldMeta,
+                                const muse::audio::AudioResourceMeta& newMeta);
 
-    bool shouldLoadDrumset(const engraving::InstrumentTrackId& instrumentTrackId, const muse::audio::AudioResourceMeta& oldMeta,
+    bool shouldLoadDrumset(const engraving::InstrumentTrackId& instrumentTrackId,
+                           const muse::audio::AudioResourceMeta& oldMeta,
                            const muse::audio::AudioResourceMeta& newMeta) const;
 
     void addSoundFlagsIfNeed(const std::vector<engraving::EngravingItem*>& selection);
@@ -211,9 +221,13 @@ private:
 
     using TrackAddFinished = std::function<void ()>;
 
-    void addTrack(const engraving::InstrumentTrackId& instrumentTrackId, const TrackAddFinished& onFinished);
-    void doAddTrack(const engraving::InstrumentTrackId& instrumentTrackId, const std::string& title, const TrackAddFinished& onFinished);
-    void addAuxTrack(muse::audio::aux_channel_idx_t index, const TrackAddFinished& onFinished);
+    void addTrack(const engraving::InstrumentTrackId& instrumentTrackId,
+                  const TrackAddFinished& onFinished);
+    void doAddTrack(const engraving::InstrumentTrackId& instrumentTrackId,
+                    const std::string& title,
+                    const TrackAddFinished& onFinished);
+    void addAuxTrack(muse::audio::aux_channel_idx_t index,
+                     const TrackAddFinished& onFinished);
 
     void setTrackActivity(const engraving::InstrumentTrackId& instrumentTrackId, const bool isActive);
     muse::audio::AudioOutputParams trackOutputParams(const engraving::InstrumentTrackId& instrumentTrackId) const;
@@ -230,6 +244,12 @@ private:
     void showOnlineSoundsProcessingError();
     void processOnlineSounds();
     void clearOnlineSoundsCache();
+        // Screen reader helpers
+    void playCurrentNote();
+    void playCurrentMeasure();
+    void playCurrentStaff();
+    void playCurrentRangeSelection();
+
 
     muse::audio::secs_t playedTickToSecs(int tick) const;
 
@@ -274,4 +294,5 @@ private:
     muse::Progress m_onlineSoundsProcessingProgress;
     bool m_onlineSoundsErrorDetected = false;
 };
-}
+
+} // namespace mu::playback
